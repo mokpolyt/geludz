@@ -3083,11 +3083,11 @@ requestAnimationFrame(draw);
 
 /* ---------- computer opponent (drives fighter 1 through the same inputs a player uses) ---------- */
 const LV = [
-  {tick:170, atk:.35, sp:.05, ult:.06, grab:.5, back:.6},
-  {tick:110, atk:.6,  sp:.10, ult:.12, grab:1,  back:.45},
-  {tick:70,  atk:.85, sp:.18, ult:.30, grab:1.6, back:.3}
+  {tick:220, atk:.22, sp:.03, ult:.04, grab:.4, back:.8, wander:1.3},
+  {tick:160, atk:.35, sp:.05, ult:.07, grab:.8, back:.7, wander:1},
+  {tick:110, atk:.55, sp:.09, ult:.14, grab:1.2, back:.5, wander:.6}
 ];
-const ai = {mode:'fight', until:0, nextP:0, combo:0, cmax:3, prop:0, propUntil:0, holdAt:0};
+const ai = {mode:'fight', dir:0, zd:0, until:0, nextP:0, combo:0, cmax:3, prop:0, propUntil:0, holdAt:0};
 const aiSet = (k, d) => applyInput(1, k, d);
 function aiTick(){
   if (!vsCpu || !G || G.over || phase !== 'fight') return;
@@ -3117,8 +3117,15 @@ function aiTick(){
     }
   } else if (ai.mode === 'back' && now < ai.until && f.x > 90 && f.x < WW - 90){   /* hit and run */
     mv = -sg; mz = rnd() < .5 ? mz : 0;
+  } else if (ai.mode === 'wander' && now < ai.until && f.x > 90 && f.x < WW - 90){   /* strolls around, often backwards */
+    mv = ai.dir; mz = ai.zd;
   } else {
     ai.mode = 'fight';
+    if (rnd() < L.wander*.05){                         /* nothing to do: wander off for a moment */
+      const r = rnd();
+      ai.mode = 'wander'; ai.until = now + 900 + rnd()*1800;
+      ai.dir = r < .55 ? -sg : r < .8 ? 0 : sg; ai.zd = Math.floor(rnd()*3) - 1;
+    }
     const inRange = ad < 78 && Math.abs(dz) < 14;
     if (!inRange) mv = ad > 62 ? sg : (facing ? 0 : sg);
     else if (!facing) mv = sg;
@@ -3126,7 +3133,7 @@ function aiTick(){
     if (inRange && facing && now >= ai.nextP && rnd() < L.atk){             /* punches, then a kick */
       aiSet('p'); ai.nextP = now + 260 + rnd()*280;
       if (++ai.combo >= ai.cmax){
-        ai.combo = 0; ai.cmax = 2 + Math.floor(rnd()*3);
+        ai.combo = 0; ai.cmax = 2 + Math.floor(rnd()*2); ai.nextP = now + 900 + rnd()*1400;   /* then a breather */
         if (rnd() < L.back){ ai.mode = 'back'; ai.until = now + 400 + rnd()*500; }
       }
     }
